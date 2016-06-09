@@ -1,0 +1,269 @@
+
+<html>
+<head>
+<title> CS585: HW A4 Student Name Sang-Joon Lee  </title>
+<style>
+<!--
+body{
+font-family: 'Trebuchet MS', Verdana;
+}
+p{
+font-family: 'Trebuchet MS', Times;
+margin: 10px 10px 15px 20px;
+}
+h3{
+margin: 5px;
+}
+h2{
+margin: 10px;
+}
+h1{
+margin: 10px 0px 0px 20px;
+}
+div.main-body{
+align:center;
+margin: 30px;
+}
+hr{
+margin:20px 0px 20px 0px;
+}
+-->
+</style>
+</head>
+
+<body>
+<center>
+<a href="http://www.bu.edu"><img border="0" src="http://www.cs.bu.edu/fac/betke/images/bu-logo.gif"
+width="119" height="120"></a>
+</center>
+
+<h1>A4: Object Tracking, Multiple Object Tracking, Behavior Analysis </h1>
+<p> 
+ CS 585 HW A4 <br>
+ Sang-Joon Lee <br>
+ Date Oct 26, 2015
+</p>
+
+<div class="main-body">
+<hr>
+<h2> Problem Definition </h2>
+<p>
+The goal of this assignment is to track multiple objects from frame to fram and 
+display a history of each object's paths. The objective of this project is to 
+learn more about the practical issues that arise when designing a tracking system
+using computer vision.  There are two sets of dataset that has been provided for 
+experiement, Bat dataset and Acqurium dataset. In this project, we use the Bat dataset 
+as input to the system for analysis. 
+</p>
+<hr>
+<h2> Problem Topics </h2>
+<p>
+In the project, we used kalman filter to estimate the position of the object from frame to frame
+and used hungarian algorithm to associate the data points from each estimation to the objects 
+near the estimated data points. 
+<br>
+<br>
+The following are description of method and implemenation of multiple tracking algorithm using kalman filter and 
+hungarian algorithm:
+</p>
+
+<hr>
+<h2> Method and Implementation </h2>
+<h3 style="text-indent: 10px;"> (1) Obtain Objects from Bat dataset  </h3>
+<p>
+In this project, we used a Bat dataset with provided list of detected object in each frame to 
+use the optimal segmentation of object. 
+<br><br>
+Once each image/frame was read, the tracks for tracking the object is initialized
+for all objects detected in the image. 
+</p>
+
+<p>
+Each object was initialized with a date structure that stores Kalman Filter information, 
+traces (tracks), prediction and measurement, as shown below:
+
+</p>
+<pre>
+		struct Objtrack {
+			vector<Point2d> traces;
+			KalmanFilter KF;
+			Point2d prediction;
+			Mat_<float> measurement;
+		};
+</pre>
+
+
+<h3 style="text-indent: 10px;"> (2) Estimate the Position of the Object using Kalman Filter </h3>
+<p>
+In order to implement the estimation step, we implemented the Kalman filter. 
+The openCV Kalman Filter library was used to compute the kalam filter. 
+</p>
+
+<p> Inititalization of Kalman Filter </p>
+
+<h3 style="text-indent: 10px;"> (3) Data Association Method to Track the Objects in the Frame </h3>
+<p>
+For the data association method, the hugarian algorithm was used. A third party library 
+was used for integrating the experiement data and the kalman filter implemenation. 
+</p>
+
+<p>
+Also, a maximum distance was set for the track, to consider cases
+when the object disappears from the image. 
+</p>
+
+<p>
+Also, when a track is not assigned to any object in the fram, the track is deleted. 
+When an object is not assigned to any track in the frame, a new track is created. 
+</p>
+
+<h3 style="text-indent: 10px;"> (4) Measurement into Kalmane Filter
+ </h3> 
+<p>
+
+
+</p>
+
+<h3 style="text-indent: 10px;">
+(5) Draw the track
+</h3>
+<p> Once all the estimated position of the object is associated with the oject's 
+position in the image, the trace of each object is displayed in a for-loop
+using a random color assignment. 
+</p>
+
+<pre>
+			for (int k = 0; k < tracks.size(); k++){
+				unsigned char r = 255 * (rand() / (1.0 + RAND_MAX));
+				unsigned char g = 255 * (rand() / (1.0 + RAND_MAX));
+				unsigned char b = 255 * (rand() / (1.0 + RAND_MAX));
+				Scalar Color = Scalar(r, g, b);
+				
+				if (tracks[k].traces.size() > 1)
+				{
+					for (int i = 0; i < tracks[k].traces.size() - 1; i++) {
+						line(binary3C, tracks[k].traces[i], tracks[k].traces[i + 1], Color, 2, CV_AA);
+				}
+			}
+</pre>
+
+
+
+<hr>
+<h2>Experiments</h2>
+<p>
+In order to test the object tracking algorithm using kalman filter and 
+hungarian algorithm, we adjusted the kalman filter value Q to see how
+the tracking behaves. 
+</p>
+
+<p>
+The kalman filter 'Q' matrix (noise process covariance) to see how the algorithm 
+behaves in tracking the object and how the algorithm can be improved to 
+track the objects in the image. 
+</p>
+
+<p>
+The experiment was performed on following image:
+<img src="Z:\public_html\cs585\A4\img\labeledori.png">
+</p>
+
+<p>
+The evaluation of the algorithm was based on how the algorithnm 
+accurately tracks the same assgined object. 
+</p>
+
+<hr>
+<h2> Results</h2>
+<p>
+The algorithm did not do a good job of tracking the bats correctly.
+</p>
+
+<p>
+Tracking Tracking:
+<img src="Z:\public_html\cs585\A4\img\result.png">
+</p>
+
+
+<hr>
+<h2> Discussion </h2>
+
+<h3> Discussion of Tracking Results </h3>
+<p>
+The tracking result was not very successful. The estimation of the data point in the kalman filter 
+was significantly off. 
+</p>
+
+<h3>Decision to Begin & Terminate a Track</h3>
+<p>
+A track is terminated when it is not assigned to any object in the 
+specific frame. 
+</p>
+<p>
+A new track is created when there is an object but has not been 
+assigned to any track in the image. 
+</p>
+
+<h3>Obervation of Objects When Occluded</h3>
+<p>
+In the lecture, we learnt that when the objects are occluded, they 
+are identified as two object very close each other and the 
+data association method may not assign the track to correct object. 
+When they are occluded and detected as a single object by the image 
+segmentation result, the algorithm will only track one object and 
+another track will be deleted. When the object seperate again in the
+susequent frame, a new track is created. 
+</p>
+
+<p>
+However, a better method is to have a single object to be assigned with 
+multiple tracks and have multiple tracks shown in the resulting frame until
+they are seperated from each other.  The direction and object is still difficult to 
+assign and the data association method may not be able to determine the same object. 
+</p>
+
+<p>
+One improvement may be gathering additional characteristics of the object, such as size, 
+circularity, orientation and angle of the object as part of track history and 
+by looking at multiple frame - before & after occulsion - to correctly determin the 
+object's path to improve data association assignment. 
+We can also use velocity and accelation of the object to properly assign to correct object. 
+</p>
+
+<h3>Spurious Detections</h3>
+<p>
+The object tracking software will display the objects tracking in the resulting image 
+and will disappear after short display of on the image. 
+</p>
+
+<h3>Advantages and Disadvantages of Different kinematic models</h3>
+<p>
+We can also consider different kinematic models such as velocity and accelartion of the object. 
+The advanaced kinematic model can improve data association when the object is very close to each
+other, such as occulsion. By observing and tracking the velocity of the object, we can 
+have the object assigned to data point estimation where the velocity is similar to before occulsion.
+
+</p>
+
+<hr>
+<h2> Conclusions </h2>
+<p>
+In the project, we were able to perform the kalman filter. However, we were not able to successfully 
+execute the data association method using the hungarian algorithm. 
+</p>
+
+<hr>
+<h2> Credits and Bibliography </h2>
+<p>
+<li>	Hungarian algorithm: <a href="https://github.com/Smorodov/Multitarget-tracker"> https://github.com/Smorodov/Multitarget-tracker </a> </li>
+<li>	Kalman Filter OpenCV: http://docs.opencv.org/master/dd/d6a/classcv_1_1KalmanFilter.html#gsc.tab=0 </li>
+<li>	Code from Lab 7</li>	
+</p>
+
+<hr>
+</div>
+</body>
+
+
+
+</html>

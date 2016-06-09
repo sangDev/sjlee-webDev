@@ -1,0 +1,362 @@
+
+
+<html>
+<head>
+<title> CS440/640 Homework Template: HW[x] Student Name [xxx]  </title>
+<style>
+<!--
+body{
+font-family: 'Trebuchet MS', Verdana;
+}
+p{
+font-family: 'Trebuchet MS', Times;
+margin: 10px 10px 15px 20px;
+}
+h3{
+margin: 5px;
+}
+h2{
+margin: 10px;
+}
+h1{
+margin: 10px 0px 0px 20px;
+}
+div.main-body{
+align:center;
+margin: 30px;
+}
+hr{
+margin:20px 0px 20px 0px;
+}
+-->
+</style>
+</head>
+
+<body>
+<center>
+<a href="http://www.bu.edu"><img border="0" src="http://www.cs.bu.edu/fac/betke/images/bu-logo.gif"
+width="119" height="120"></a>
+</center>
+
+<h1>Gesture Detection System</h1>
+<p> 
+ CS 440 P 1 <br>
+ Tyrone Hou <br>
+ Sang-Joon Lee, Srivathsa Rajagopal <br>
+    2/8/16
+</p>
+
+<div class="main-body">
+<hr>
+<h2> Problem Definition </h2>
+<p>
+Computer vision techniques provide a powerful toolbox for creating intuitive interfaces between 
+humans and machines. In particular, computer scientists have long since tackled the question how 
+to accurately and efficiently identify natural human gestures within the context of a dynamic visual 
+environment. Poor lighting and color conditions can add background noise to the processed image, 
+reducing the precision of object detection. In addition, having multiple objects in front of the 
+camera can significantly increase the amount of processing required to obtain a successful gesture 
+match. Solutions to combat such problems include reducing the amount of variability in the background
+image, as well as using context to narrow down the number of pixels that need to be searched to detect
+an object. Below we describe our attempt to implement some of these solutions in a simple version of a
+gesture detection system.
+</p>
+
+<hr>
+<h2> Method and Implementation </h2>
+<p>We describe general preprocessing methods used to narrow down the candidate objects for detection, 
+then delve into more detail on the implementation of each detection method. For our system we assume 
+there will be at most one user sitting in front of the camera, and that there will always be a face 
+present in the image.
+</p>
+
+<p>
+We first obtain an input image from the video camera. Using this image we then utilize a skin detection
+algorithm in order to filter out unneeded pixels in the image, producing a binary image as output.
+The binary image is then contour matched in order to determine the largest bounding boxes.
+We then perform template matching with pyramid images in order to detect faces.
+</p>
+
+<h3> Face Detection (Sang-Joon)</h3>
+<p>
+    The face detection algorithm uses the template matching method to detect the location of the face in the image. The algorithm uses the pyramid method to downsample the orignal image into 1/2, 1/4 and 1/8 of the size and find the most correlated region in the image with the face. An image of a face is used a template and it is used to calculated the Normalize Correlation Coefficient of the source input image.  The following is an overview of the described algorithm:
+</p>
+<p style="text-indent:5em"> 
+    <img src="face_detection/faceDetectionProcess.PNG">    
+</p>
+The following illustrates the output of downsampled image into 1/2, 1/4 and 1/8 of the original size. 
+<p style="text-indent:5em"> 
+    <img src="face_detection/face1_2.PNG">
+    <img src="face_detection/face1_4.PNG">    
+    <img src="face_detection/face1_8.PNG">    
+</p>
+The following normalized correlation coefficient was used to calculate the NCC value for each of the downsampled image. 
+<p style="text-indent:5em">    
+    <img src="http://face_detection/ncc.png">    
+</p>
+The following OpenCV template matching function is called to calculate the NCC of two images:
+
+<p style="text-indent:5em">
+	   matchTemplate(s_img, t_img, result, match_method);
+</p>
+<p>
+Here, match_method = 5, i.e. Normalized Correlation Coefficient method.
+You can find more information about &#39;matchTemplate&#39; function on following OpenCV documentation:
+<a href="http://docs.opencv.org/modules/imgproc/doc/object_detection.html?highlight=matchtemplate#matchtemplate" target="_blank">OpenCV matchTemplate</a>
+</p>
+The following is an example of detected image with 1/2 downsample image. As the subject in the video moves further away from the camera, higher resolution image is used. As the subject moves close to the camera, an lower resolution image is used to match the size of the template image.  
+<p style="text-indent:5em">    
+    <img src="face_detection/size_detected_1over2.png">    
+</p>
+
+<h3> Palm &amp; Fist Gesture Recognition (Sang-Joon)</h3>
+<p>
+    A gesture recognition algoritm was implemented to distinguish between a palm and a fist of a hand in an image. The following figure illustrates the gesture recongition algorithm:
+</p>
+<p style="text-indent:5em">    
+    <img src="face_detection/palm_process.PNG">    
+</p>
+<p>
+    This algorithm uses skin detection algorithm to find the region of area that we suspect there will be a hand gesture. Our assumption is that there will be a person in the image with a face included as part of the image. We use the information from the Face detection algorithm and masks the area of detected face in the image such that we can eliminate the face portion othe hand gesture detection. We, then, use this image to get the largest contour to assume that the largest detected skin in the image is a hand. 
+</p>
+<p>
+    A template matching is performed against both palm and fist. The output of the higher NCC value is considered as an input the decision making algorithm. Another parameter that is used for decision making is the circularity of the object. We take the contour area of detected hand gesture and calculate the circularity of the hand using the following equation:    
+</p>
+<p style="text-indent:5em">    
+Circularity<br>
+   A = Area <br>
+   P = Perimeter <br>
+   T = 4 * Pi(A / P ^ 2)    <br>
+</p>
+
+<p>
+ The following is an example output of the gesture recognition algorithm. 
+</p>
+<p style="text-indent:5em">    
+    <img src="face_detection/palm_detected2.PNG">    
+</p>
+
+<h3>Wave (Tyrone Hou)</h3>
+<p>
+Because facial recognition detects a static object in the image as opposed to movement, we decided to 
+first subtract the face from images used for subsequent processing. This increases the accuracy of 
+other gestures by removing potential object candidates. Once the face has been correctly subtracted, 
+the largest bounding box can be selected from the remaining contours of the image.
+The projections and moments of the region of interest can then be computed using the formulas given 
+in Freeman et. al. Using the moments we calculate an orientation angle theta and angular velocity
+for the hand, which is then thresholded to detect a wave gesture.
+</p>
+
+<h3>Vertical Motion(Srivathsa )</h3>
+<p>
+Give a concise description of the implemented method. For example, you might describe the motivation of current idea, the algorithmic steps or any formulation used in current method. Design:
+The video resolution of the Mat data structure in opencv is 640 * 480.
+
+The width 640 pixels is divided into 10 columns. These 10 vertical segments will be of 64 pixels each.
+The height 480 pixels is divided into 8 rows. These 8 row segments will be of 60 pixels each.
+
+A timer is set to every 6000 milli seconds. The frames are super imposed on the previous frame creating a overlapped frame window.
+This window is reset at every time interval.
+At the end of the time interval, all the pixels on the window are evaluated (in binary fashion - white or black) by traversing through each pixel through a row - column loop.
+
+For every vertical segment, the intensity of the pixel is found and added up. We form the vertical segment cumulative pixel count of whiote pixels.
+For every vertical segment, each row segment is traveresed to find the pixel density of each block or cell (64*60). If the pixel density of each block is greater than a threshold (50 or 60 %), the block id flagged as a positive match.
+Similarly, for every adjacent block and segments, if the block density is white throughout the columns, we assign a positive value as probability. This probability if greater than 0.75, a vertical gesture is detected.
+
+* Could not integrate it with the main code. So dropped the implementation due to lack of time. Just outlined the pusedo code approach. *
+</p>
+
+
+<hr>
+<h2>Experiments</h2>
+<p>
+For our experiment we recorded a video showing various gestures and positions of the user’s face
+around the screen. For each gesture we recorded either a success or fail depending on whether the
+system managed to detect the gesture. We recorded a 3x3 confusion matrix for the fist, palm, and wave
+gestures, and a 1x1 confusion matrix for the face dectection gesture. In total we performed 40 trials
+for the fist, palm, and wave gestrues and 20 trials for face detection.
+ </p>
+ 
+ <p>
+ For evaluation metrics we caculated the true and false positive rates, accuracy, and precision for each confusion matrix.
+ </p>
+
+<hr>
+<h2> Results</h2>
+
+<p>
+</p>
+
+<h3>Confusion Matrices</h3>
+
+<p>
+<h3> Palm, Fist, Wave </h3>
+<table border="1">
+<tr>
+<td></td><td> Palm </td><td> Fist </td> <td> Wave </td> <td> None </td>
+</tr>
+<vl>
+<tr>
+  <td> Palm </td> 
+  <td> 10 </td> 
+  <td> 0 </td>
+  <td> 0 </td> 
+  <td> 0 </td>
+</tr> 
+<tr>
+  <td> Fist </td> 
+  <td> 4 </td> 
+  <td> 7 </td>
+  <td> 1 </td> 
+  <td> 0 </td>
+</tr> 
+<tr>
+  <td> Wave </td> 
+  <td> 0 </td> 
+  <td> 0 </td>
+  <td> 9 </td> 
+  <td> 1 </td>
+</tr> 
+<tr>
+  <td> None </td> 
+  <td> 2 </td> 
+  <td> 3 </td>
+  <td> 3 </td> 
+  <td> 0 </td>
+</tr> 
+</table>
+</p>
+
+<p>
+<h3>Face Detection</h3>
+<table border="1">
+<tr>
+<td></td><td> Face </td><td> None </td>
+</tr>
+<tr>
+  <td> Face </td> 
+  <td> 10 </td> 
+  <td> 2 </td>
+</tr> 
+<tr>
+  <td> None </td> 
+  <td> 3 </td>
+  <td> 5 </td>
+</tr>
+</table>
+</p>
+
+<p>
+<h2> Evalution Statistics</h2>
+ <h3>Palm</h3>
+ <ul>
+ <li>TP rate: 10 / 16 = 0.63</li>
+ <li>FP rate: 0 / 24 = 0.0</li>
+ <li>accuracy: 34 / 40 = 0.85 </li>
+ <li>precision: 10 / 10 = 1 </li>
+ </ul>
+ 
+  <h3>Fist</h3>
+ <ul>
+ <li>TP rate: 7 / 10 = .7</li>
+ <li>FP rate: 5 / 21 = .24</li>
+ <li>accuracy: 23 / 31 = .74 </li>
+ <li>precision: 7 / 12 = .58</li>
+ </ul>
+ 
+  <h3>Wave</h3>
+ <ul>
+ <li>TP rate: 9 / 13 = .69</li>
+ <li>FP rate: 1 / 15 = .07</li>
+ <li>accuracy: 23 / 28 = .82 </li>
+ <li>precision: 9 / 10 = .9</li>
+ </ul>
+ 
+  <h3>Face Detection</h3>
+ <ul>
+ <li>TP rate: 10 / 13 = .77 </li>
+ <li>FP rate: 2 / 7 = .29 </li>
+ <li>accuracy: 15/20 = .75 </li>
+ <li>precision: 10/12 = .83 </li>
+ </ul>
+</p>
+
+
+The following are some of the sucesses:
+
+<p style="text-indent:5em">    
+    <img src="face_detection/fist_detected.png">    
+</p>
+<p style="text-indent:5em">    
+    <img src="face_detection/palm_detected2.png">    
+</p>
+<p style="text-indent:5em">    
+    <img src="face_detection/size_detected_1over2.png">    
+</p>
+<p style="text-indent:5em">    
+    <img src="face_detection/size_detected_1over4.png">    
+</p>
+<p style="text-indent:5em">    
+    <img src="face_detection/size_detected_1over8.png">    
+</p>
+
+
+
+<hr>
+<h2> Discussion </h2>
+
+<h3>Wave Detection </h3>
+<p>
+The wave detection algorithm worked very well in terms of performance. It was able to calculate and determine the movement of the hand horizontally. 
+There were few cases when the wave gestures were not detected at small movement. It uses a simple threholding mechanism on the velocity of the hand to determine the 
+angle of the hand. This could be improved by calculating the acceleration of the object. 
+</p>
+
+<h3>Face Detection </h3>
+<p>
+The face detection algorithm performed relatively well under different environment condition such as back ground. 
+We can see from the confusion matrix that there were large number of true positive and and true negatives.  
+The algorithm was able to detect when face was in difference distance away from the camera as well as recognize that face was absent from the image. 
+However, the performance of the algorithm was not perfect. When the subject's face was in different lighting condition, it was difficult to match 
+the image properly. For example, when there was a person with cloth that had similar to color of the face it was not finding the right image. 
+This can be improve by using adaptive thresholding and also performing detection using gray color scale image. 
+</p>
+
+<h3>Vertical Motion </h3>
+<p>
+What are the strengths and weaknesses of your method?
+Difficult to integrate with other gestures we implemented. The frame rate is very high compared to other gestures which are close to real-time detection as opposed to this timed recognition.
+Do your results show that your method is generally successful or are there limitations? Describe what you expected to find in your experiments, and how that differed or was confirmed by your results.
+The method is easy to implement. Does not use library functions.
+Needs a lot of trial and error to get the assignment of probabilities right.
+Vertical motion is easily identified owing to the nature of hand movement. Hand/palm is vertically oriented and slim.
+For horizontal motion detection, the arm causes inadvertent pixel illumination or whitening.
+Potential future work. How could your method be improved? What would you try (if you had more time) to overcome the failures/limitations of your work?
+Improvements:
+Division of screen into smaller horizontal and vertical segments.
+Probability assignment more precisely based on the pattern of waving.
+Variation: Use of motion energy to detect wave.
+Error checking and optimization. Horizontal and vertical motion can be implemented in a single function making the code concise. This needs quite a few parameters and could potentially induce silly bugs in code thereby requiring more testing time.
+</p>
+
+
+<hr>
+<h2> Conclusions </h2>
+
+<p>
+Based on our results we conclude that our system needs work to include more variability. Computer vision is hard.
+</p>
+
+
+<hr>
+<h2> Credits and Bibliography </h2>
+<p> http://docs.opencv.org/2.4/modules/imgproc/doc/imgproc.html </p>
+<p>W. T. Freeman , D. Anderson , P. Beardsley , C. Dodge , H. Kage , K. Kyuma , Y. Miyake , M. Roth , K. Tanaka , C. Weissman , W. Yerazunis IEEE Computer Graphics and Applications, 18(3):42-53, May 1998.
+</p>
+<hr>
+</div>
+</body>
+
+
+
+</html>

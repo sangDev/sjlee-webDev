@@ -1,0 +1,691 @@
+
+<html>
+<head>
+<title> CS585 Homework Template: HW A3 Student Name Sang-Joon Lee  </title>
+<style>
+<!--
+body{
+font-family: 'Trebuchet MS', Verdana;
+}
+p{
+font-family: 'Trebuchet MS', Times;
+margin: 10px 10px 15px 20px;
+}
+h3{
+margin: 5px;
+}
+h2{
+margin: 10px;
+}
+h1{
+margin: 10px 0px 0px 20px;
+}
+div.main-body{
+align:center;
+margin: 30px;
+}
+hr{
+margin:20px 0px 20px 0px;
+}
+-->
+</style>
+</head>
+
+<body>
+<center>
+<a href="http://www.bu.edu"><img border="0" src="http://www.cs.bu.edu/fac/betke/images/bu-logo.gif"
+width="119" height="120"></a>
+</center>
+
+<h1>A3: Segmentation and Object Shape Analysis</h1>
+<p> 
+ CS 585 HW A3 <br>
+ Sang-Joon Lee <br>
+ Date Oct 7, 2015
+</p>
+
+<div class="main-body">
+
+<! -- 
+
+PART 1 CELL 
+
+-->
+<hr>
+<h1>Problem Definition</h1>
+<p>
+The goal of part 1 of this project is to design and implement algorithm that delineates 
+objects and analyze their shapes and computer their characteristics. 
+An adaptive segmentation algorithm and a object labelling algorithm is implemented. 
+The following three datasets were used to evaluate the performance of segmentation algorithm: 
+Cell data set, Bat data set, and aquarium data set.    
+</p>
+
+<hr>
+
+<h1>Method and Implementation </h1>
+<p>
+The following steps has been implemented for this project. Each of the method and 
+implementation is described in this report. 
+<br>
+<li style="text-indent: 30px;"> Segmentation Algorithm: Adaptive Thresholding </li>
+<li style="text-indent: 30px;"> Connected Component Labeling algorithm </li>
+<li style="text-indent: 30px;"> Techniques to Reduce Number of Components </li>
+<li style="text-indent: 30px;"> Features/Characteristics of the object
+ </li>
+
+</p>
+<p>
+The following detail description of method and implementation for each steps. 
+</p>
+
+<h2 style="text-indent: 10px;"> A. Segmentation Algorithm </h2>
+<p>
+The adaptive segmentation algorithm takes the mean of neighbouring pixels determined by block size 
+and uses this mean as a threshold value for the pixel being processed. This is performed for each 
+pixel in the image. The following is a function call declaration of the segmentation algorithm: 
+</p>
+
+<pre>
+			void adaptiveThresholdCustom(Mat& src, Mat& threshOut, int blockSize, double bias);
+</pre>
+
+<p>
+The function accepts the source image, the block size of adaptive window and bias as an input, 
+performs adaptive thresholding and returns thresholded image.  
+</p>
+
+<h2 style="text-indent: 10px;"> B. Connected Component Labeling </h2>
+<p>
+The connected component labeling uses the segmented image to find the connected components in the image. 
+The function declaration is shown as follows:
+</p>
+<p style="text-indent: 5em;">
+		void labelBlobs(Mat &binary, vector <vector<Point2i> > &blobs)
+</p>
+<p> 
+The connected component labeling function uses the openCV "floodfill" function to recursively identify the 
+objects that are connected. 
+</p>
+<p style="text-indent: 5em;">
+		floodFill(label_image, Point(x, y), Scalar(label_count), &rect, Scalar(0), Scalar(0), 4);
+</p>
+
+
+<h2 style="text-indent: 10px;"> C. Techniques to Reduce Number of Components </h2>
+<p>
+In this project, we used erosion and dilation as technique to reduce the number of components as 
+well as the noise in the image. 
+</p>
+
+<h3 style="text-indent: 10px;"> Erosion and Dilation </h3>
+<p>
+In the erosion and dilation function, we used the getStructuringElement openCV function with 
+MORH_RECT to remove noise from the image. 
+<br><br>
+The following is erosion and dilation function:
+</p>
+<p style="text-indent: 5em;">
+		void erosion(Mat& src, Mat& eroded, int erosion_size)
+</p>
+<p style="text-indent: 5em;">
+		void dilation(Mat& src, Mat& dilated, int dilation_size)
+</p>
+
+<h2 style="text-indent: 10px;"> D. Features & Characteristics of Objects </h2>
+<p>
+The characteristics or features of the object can be described by the objects area, 
+orientation, circularity, boundary parameter, compactness and ratio.  The following section 
+describes the details of how each of these characteristics are computed. 
+</p>
+
+<h3 style="text-indent: 10px;"> 1. Object Area </h3>
+<p>
+The area of object can be derived by raw moments. The moment of object can be found 
+by using the "moment" openCV function as follows. The "moment" function computes moments
+up to  3rd order.  The variable for m00 of the returned parameter is the first moment of the 
+object which represents the area of object. 
+<br>
+The following is an example of how an area of object can be found from moment of a contour:
+</p>
+
+<pre>
+			        mu[i] = moments(contours[i], false);
+			        area = mu[i].m00;
+</pre>		
+<p>
+Please refer to below link for more information on "moment" openCV function:
+<a href="http://docs.opencv.org/modules/imgproc/doc/structural_analysis_and_shape_descriptors.html?highlight=moments#moments"> 
+reference on OpenCV structural analysis and shape description
+</a>
+<br>
+
+<p>
+Using the moment, we can also calculate the centroid of the object. This is also the center of 
+mass of the object.  The centroid of the object can be calculated using the properties from moment:
+</p>
+<pre>
+	    			mc[i] = Point2f(mu[i].m10 / mu[i].m00, mu[i].m01 / mu[i].m00);
+</pre>	
+<p>
+The centroid of the object is useful in finding the orientation of the object. 
+<br>
+Reference on Image Moments can be found here:
+<a href="https://en.wikipedia.org/wiki/Image_moment"> Image Moments</a>
+
+</p>
+
+
+<h3 style="text-indent: 10px;"> 2. Orientation of the Object </h3>
+<p>
+The orientation of object can be derived by using the second order central moment. The second 
+order central moment can be calculated using the first moment and the centroid of the
+object as follows:
+</p>
+<pre>
+				u_p20 = (mu[i].m20 / mu[i].m00) - (mc[i].x * mc[i].x);
+        			u_p02 = (mu[i].m02 / mu[i].m00) - (mc[i].y * mc[i].y);
+        			u_p11 = (mu[i].m11 / mu[i].m00) - (mc[i].x * mc[i].y);
+</pre>	
+<p>
+Using the second order moments, a covariance matrix of the image I(x,y) can be found. 
+The eigenvectors of this matrix correspond to the major and minor axes of the image intensity, 
+so the orientation can thus be extracted from the angle of the eigenvector associated 
+with the largest eigenvalue. It can be shown that this angle Θ is given by the following formula:  
+</p>
+<pre>
+	    		     orientation = (0.5 * (atan( (2 * u_p11) / (u_p20 - u_p02) )) * 180.0 / CV_PI);
+</pre>	
+
+<h3 style="text-indent: 10px;"> 3. Circularity of the Object </h3>
+<p>
+The circularity of the object is defined as: 
+</p>
+<pre>
+					Circularity = Emin / Emax
+</pre>
+<p>
+In this project, an alternative method was used to calculate the Circularity as follows:
+</p>
+<pre>
+				Circularity as 4*PI*AREA/(PARAMETER*PARAMETER)
+			
+				double circularity = (4 * CV_PI *area) / (parameter*parameter);
+</pre>	
+<p> Please refer to link for reference to this method. 
+<a href="http://answers.opencv.org/question/21101/circularity-of-a-connected-component/"> 
+Circularity and Connected Components </a>
+<br>
+<a href="http://docs.opencv.org/master/d0/d7a/classcv_1_1SimpleBlobDetector.html#gsc.tab=0">
+BlobDetector and Circularity</a>
+
+<h3 style="text-indent: 10px;"> 4. Number of Pixels in Boundary </h3>
+<p>
+The number of pixels in boundary can be using the openCV function "arcLength". 
+An example of boundary/parameter length using the "arcLength" openCV function 
+is shown below:
+</p>
+<pre>
+				     parameter = arcLength(contours[i], true);
+</pre>	
+<p>
+Reference: <br>
+http://docs.opencv.org/modules/imgproc/doc/structural_analysis_and_shape_descriptors.html#arclength
+</p>
+
+<h3 style="text-indent: 10px;"> 5. Compactness of Object </h3>
+<p>
+The compactness of an object can be found using the boundary length and the area of the object, 
+where compactness is boundary length of object squared divided the area of the object.
+The following example describes the equation of compactness of object:
+</p>        
+
+<pre>
+				    compactness = pow(parameter, 2) / area;
+</pre>	
+
+<h3 style="text-indent: 10px;"> 6. Ratio of Area to the Parameter</h3>
+<p> 
+The ratio of area to the parameter is the ratio of area that surrounds the object 
+to the the area of object itself.  To calculate this property, first a circle is drawn around
+the object such that the area of the circle is minimum. 
+<br>
+<br>
+The openCV function "minEnclosingCircle" can be used to find the minimum circle that surrounds
+the object as follows:
+<pre>
+        			minEnclosingCircle(Mat(contours[i]), center, radius);
+</pre>	
+<br>
+You can find more information about the OpenCV function "minEnclosingCircle" on following link:<br>
+http://docs.opencv.org/modules/imgproc/doc/structural_analysis_and_shape_descriptors.html#minenclosingcircle
+</p>
+<p>
+Using this information, we can find the area of the circle that surrounds the object and the ratio 
+of the object to the surrounding area as follows:
+</p>
+<pre>
+        			// area of circle = pi*r^2
+        			area_circle = CV_PI*pow(radius, 2);
+        			// Area of Object / Area of Circle
+        			ratio_area_peri = mu[i].m00 / area_circle * 100;
+</pre>	
+
+<hr>
+
+<h1>Experiments</h1>
+<p>
+Three different datasets were used for experiments and evaluation of the segmentation and object 
+shape analysis algorithm. The datasets used are Cell dataset, Bat dataset and Aquarium dataset. The following 
+is a brief description of each dataset.
+</p>
+
+<h2>Cell Dataset</h2>
+<p>
+The cell dataset is an set of images of cells that were captured through microscope. 
+The image of cells are some what evenly lighted which means that we can use a simpler 
+segmentation algorithm such as thresholding. However, the link between the cells gives a 
+challenge in determining the correct connected components. 
+<p style="text-indent: 5em;">
+<img src="results\Cell_SourceImage.png" alt="Cell Image" height="520" width="560">
+</p>
+
+<h2>Bat Dataset</h2>
+<p>
+The bat dataset is an set of images of bat that were captured via infrared camera. 
+There are many components in this image as well as uneven lighting in the image.  
+<p style="text-indent: 5em;">
+<img src="results\Bat_OriginalImage.png" alt="Bat Image" height="520" width="560">
+</p>
+
+<h2>Aquarium Dataset</h2>
+<p>
+The aquarium dataset is an set of images of fish tank capture via high definition camera. 
+There are large amount of features and objects in this image which can be challenging for 
+image segmentation problem.  
+<p style="text-indent: 5em;">
+<img src="results\aqm_original.png" alt="Aquarium Image" height="520" width="560">
+</p>
+
+
+<hr>
+<h1>Results</h1>
+<p>
+The following are results of segmentation and shape analysis for three datasets.
+</p>
+
+<h2>1. Cell Dataset</h2>
+<p>
+Segmentation Method: Adaptive Threshold <br>
+Parameter Used to Reduce Number of Components: <br>
+Erosion 	= 2 <br>
+Dilation 	= 9 <br>
+<br> 
+This image show the resulting adaptive threshold applied to a cell image from the cell dataset.
+As you can see, there are few parts of cell that are detected as object, however, many are
+disconnected from each other. 
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Cell_AdaptiveThreshold.png" alt="Cell Image" height="520" width="560">
+</p>
+
+<p>
+Eroded Cell Image: <br>
+We can use erosion technique to remove any noise in the threshold image and false components.
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Cell_ErodedImage.png" alt="Cell Image" height="520" width="560">
+</p>
+
+<p>
+Dilated Cell Image: <br>
+Once the image has been eroded, we can we dilation technique to build the object back to original
+as well as connect any disconnected components.
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Cell_DilatedImage.png" alt="Cell Image" height="520" width="560">
+</p>
+
+<p>
+Connected Components & Labeling: <br>
+The following shows the segmented image with connected components and labeling:
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Cell_Labelled.png" alt="Cell Image" height="520" width="560">
+</p>
+
+<p>
+Object Shape & Feature Analysis: <br>
+The following is a resulting image of object analysis. In this image, you can see that there
+are different components that are detected as one object as well as its centroid, smallest circle that
+surrounds the object, orientation and labeling
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Cell_Orientation.png" alt="Cell Image" height="520" width="560">
+</p>
+
+<p>
+The following are analysis for each of the object in the image. In total 15 objects were detected 
+and its object shapes and analysis are presented:
+</P>
+<pre>
+			ImageData 1 x,y: 200, 182
+			ImageData 1 x,y: 261, 187
+			ImageData 1 x,y: 580, 267
+			ImageData 1 x,y: 408, 345
+			ImageData 1 x,y: 382, 386
+			ImageData 1 x,y: 843, 446
+			ImageData 1 x,y: 841, 476
+			ImageData 1 x,y: 658, 501
+			ImageData 1 x,y: 525, 510
+			ImageData 1 x,y: 480, 530
+			ImageData 1 x,y: 690, 682
+			ImageData 1 x,y: 1283, 743
+			ImageData 1 x,y: 1283, 838
+			ImageData 1 x,y: 293, 1013
+			ImageData 1 x,y: 1007, 1014
+			size of blobs: 15
+</pre>
+
+<pre>
+OBJ[0]: AREA:279  CENTROID: 1016 1016 ORIENTATION: 0.0924663 ANGLE: 0.00161384 CIRCULARITY: 
+ PARAM: 66.8284COMPACTNESS: 16.0073 Center: [1016, 1021.5] Radius: 12.2847 RATIO: 58.8474
+ 
+OBJ[1]: AREA:341  CENTROID: 304.376 304.376 ORIENTATION: 1.89982 ANGLE: 0.0331581 CIRCULARITY: 
+ PARAM: 74.8284COMPACTNESS: 16.4202 Center: [304.5, 1020.5] Radius: 14.1414 RATIO: 54.2774
+ 
+OBJ[2]: AREA:314.5  CENTROID: 1290.51 1290.51 ORIENTATION: -0.562507 ANGLE: -0.0098176 CIRCULARITY: 
+ PARAM: 71.4142COMPACTNESS: 16.2162 Center: [1290.5, 848.5] Radius: 13.2906 RATIO: 56.6738
+ 
+OBJ[3]: AREA:300  CENTROID: 1290.5 1290.5 ORIENTATION: -0 ANGLE: -0 CIRCULARITY: 
+ PARAM: 70COMPACTNESS: 16.3333 Center: [1290.5, 753] Radius: 12.875 RATIO: 57.6072
+ 
+OBJ[4]: AREA:418  CENTROID: 700.453 700.453 ORIENTATION: -3.72877 ANGLE: -0.0650793 CIRCULARITY: 
+ PARAM: 80.8284COMPACTNESS: 15.6297 Center: [700.048, 692] Radius: 14.6011 RATIO: 62.41
+ 
+OBJ[5]: AREA:4594.5  CENTROID: 513.13 513.13 ORIENTATION: 38.3083 ANGLE: 0.668606 CIRCULARITY: 
+ PARAM: 383.095COMPACTNESS: 31.943 Center: [517.242, 549.44] Radius: 53.4718 RATIO: 51.1493
+ 
+OBJ[6]: AREA:4927  CENTROID: 700.801 700.801 ORIENTATION: 35.1453 ANGLE: 0.613402 CIRCULARITY: 
+ PARAM: 313.622COMPACTNESS: 19.9633 Center: [705, 539] Radius: 62.2533 RATIO: 40.4677
+ 
+OBJ[7]: AREA:15288.5  CENTROID: 811.483 811.483 ORIENTATION: 14.3575 ANGLE: 0.250586 CIRCULARITY: 
+ PARAM: 868.86COMPACTNESS: 49.3781 Center: [810, 649] Radius: 181.028 RATIO: 14.8499
+ 
+OBJ[8]: AREA:32  CENTROID: 816.672 816.672 ORIENTATION: 26.6951 ANGLE: 0.465918 CIRCULARITY: 
+ PARAM: 24.1421COMPACTNESS: 18.2138 Center: [817, 608.5] Radius: 5.07216 RATIO: 39.5926
+ 
+OBJ[9]: AREA:2440.5  CENTROID: 880.086 880.086 ORIENTATION: 4.2318 ANGLE: 0.0738588 CIRCULARITY: 
+ PARAM: 242.87COMPACTNESS: 24.1696 Center: [878, 461.5] Radius: 49.389 RATIO: 31.847
+ 
+OBJ[10]: AREA:3847.5  CENTROID: 412.929 412.929 ORIENTATION: 1.74766 ANGLE: 0.0305024 CIRCULARITY: 
+ PARAM: 267.154COMPACTNESS: 18.5501 Center: [414.802, 419.407] Radius: 48.2229 RATIO: 52.6651
+ 
+OBJ[11]: AREA:37  CENTROID: 405.856 405.856 ORIENTATION: 19.5348 ANGLE: 0.340947 CIRCULARITY: 
+ PARAM: 27.3137COMPACTNESS: 20.1632 Center: [407, 412] Radius: 5.54672 RATIO: 38.2807
+ 
+OBJ[12]: AREA:979  CENTROID: 419.73 419.73 ORIENTATION: -5.76159 ANGLE: -0.100559 CIRCULARITY: 
+ PARAM: 127.314COMPACTNESS: 16.5565 Center: [419, 363] Radius: 21.7279 RATIO: 66.0083
+ 
+OBJ[13]: AREA:15444  CENTROID: 680.129 680.129 ORIENTATION: -38.1208 ANGLE: -0.665333 CIRCULARITY: 
+ PARAM: 845.127COMPACTNESS: 46.2471 Center: [683.5, 382.5] Radius: 159.741 RATIO: 19.2653
+ 
+OBJ[14]: AREA:57.5  CENTROID: 676.142 676.142 ORIENTATION: -3.72294 ANGLE: -0.0649775 CIRCULARITY: 
+ PARAM: 33.0711COMPACTNESS: 19.0208 Center: [676.5, 417.5] Radius: 6.87096 RATIO: 38.7689
+ 
+</pre>
+
+
+<h2>2. Bat Dataset</h2>
+<p>
+Segmentation Method: Adaptive Threshold <br>
+Parameter Used to Reduce Number of Components: <br>
+Erosion 	= 3 <br>
+Dilation 	= 10 <br>
+<br>
+This image show the resulting adaptive threshold applied to a bat image from the bat dataset.
+As you can see, there are few bats are not detected as well as noise in the image. 
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Bat_ThresholdImage.png" alt="Cell Image" height="520" width="560">
+</p>
+
+<p>
+Eroded Bat Image: <br>
+We can use erosion technique to remove any noise in the threshold image and false components.
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Bat_ErodedImage.png" alt="Cell Image" height="520" width="560">
+</p>
+
+<p>
+Dilated Bat Image: <br>
+Once the image has been eroded, we can we dilation technique to build the object back to original
+as well as connect any disconnected components.
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Bat_DilatedImage.png" alt="Cell Image" height="520" width="560">
+</p>
+
+<p>
+Connected Components & Labeling: <br>
+The following shows the segmented image with connected components and labeling:
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Bat_Labelled.png" alt="Cell Image" height="520" width="560">
+</p>
+
+<p>
+Object Shape & Feature Analysis: <br>
+The following is a resulting image of object analysis. In this image, you can see that there
+are different components that are detected as one object as well as its centroid, smallest circle that
+surrounds the object, orientation and labeling
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Bat_Orientation.png" alt="Cell Image" height="520" width="560">
+</p>
+
+<pre>
+			ImageData 1 x,y: 729, 230
+			ImageData 1 x,y: 837, 336
+			ImageData 1 x,y: 360, 461
+			ImageData 1 x,y: 921, 497
+			ImageData 1 x,y: 443, 534
+			ImageData 1 x,y: 867, 556
+			ImageData 1 x,y: 347, 559
+			ImageData 1 x,y: 1015, 570
+			ImageData 1 x,y: 550, 577
+			ImageData 1 x,y: 743, 714
+			ImageData 1 x,y: 213, 732
+			ImageData 1 x,y: 366, 824
+			ImageData 1 x,y: 34, 1011
+			size of blobs: 13
+</pre>
+
+<pre>
+	OBJ[0]: AREA:176  CENTROID: 42 42 ORIENTATION: 0 ANGLE: 0 CIRCULARITY:  
+	PARAM: 54COMPACTNESS: 16.5682 Center: [42, 1016.5] Radius: 9.99949 RATIO: 56.0282<br>
+	OBJ[1]: AREA:272  CENTROID: 374 374 ORIENTATION: -0 ANGLE: -0 CIRCULARITY: 
+	 PARAM: 66COMPACTNESS: 16.0147 Center: [374, 832.5] Radius: 12.0228 RATIO: 59.8974<br>
+	OBJ[2]: AREA:354  CENTROID: 223.551 223.551 ORIENTATION: 1.86201 ANGLE: 0.0324982 CIRCULARITY: 
+	 PARAM: 74.8284COMPACTNESS: 15.8172 Center: [223.5, 740] Radius: 13.5964 RATIO: 60.9546<br>
+	OBJ[3]: AREA:256  CENTROID: 751 751 ORIENTATION: -0 ANGLE: -0 CIRCULARITY: 
+	 PARAM: 64COMPACTNESS: 16 Center: [751, 722] Radius: 11.6531 RATIO: 60.0075<br>
+	OBJ[4]: AREA:288  CENTROID: 559 559 ORIENTATION: 0 ANGLE: 0 CIRCULARITY: 
+	 PARAM: 68COMPACTNESS: 16.0556 Center: [559, 585] Radius: 12.4028 RATIO: 59.5937<br>
+	OBJ[5]: AREA:143  CENTROID: 1018.03 1018.03 ORIENTATION: -0.090233 ANGLE: -0.00157486 CIRCULARITY: 
+	 PARAM: 50.8284COMPACTNESS: 18.0666 Center: [1018.5, 579] Radius: 9.9463 RATIO: 46.0111<br>
+	OBJ[6]: AREA:1349  CENTROID: 368.124 368.124 ORIENTATION: -36.5375 ANGLE: -0.6377 CIRCULARITY: 
+	 PARAM: 197.598COMPACTNESS: 28.9436 Center: [371, 588] Radius: 38.7724 RATIO: 28.5639<br>
+	OBJ[7]: AREA:256  CENTROID: 875 875 ORIENTATION: -0 ANGLE: -0 CIRCULARITY: 
+	 PARAM: 64COMPACTNESS: 16 Center: [875, 564] Radius: 11.6531 RATIO: 60.0075<br>
+	OBJ[8]: AREA:691.5  CENTROID: 458.55 458.55 ORIENTATION: -44.3037 ANGLE: -0.773245 CIRCULARITY: 
+	 PARAM: 114.728COMPACTNESS: 19.0347 Center: [457, 548.5] Radius: 20.7603 RATIO: 51.071<br>
+	OBJ[9]: AREA:859  CENTROID: 928.5 928.5 ORIENTATION: 1.8636 ANGLE: 0.0325259 CIRCULARITY: 
+	 PARAM: 130.485COMPACTNESS: 19.8212 Center: [928.5, 521] Radius: 26.2246 RATIO: 39.7582<br>
+	OBJ[10]: AREA:798.5  CENTROID: 380.167 380.167 ORIENTATION: 40.7622 ANGLE: 0.711435 CIRCULARITY:
+	 PARAM: 141.071COMPACTNESS: 24.923 Center: [378.5, 477.5] Radius: 25.5328 RATIO: 38.9878<br>
+	OBJ[11]: AREA:1655.5  CENTROID: 872.685 872.685 ORIENTATION: 19.6948 ANGLE: 0.343739 CIRCULARITY: 
+	 PARAM: 229.698COMPACTNESS: 31.8704 Center: [873, 355.5] Radius: 42.6705 RATIO: 28.9417<br>
+	OBJ[12]: AREA:1113  CENTROID: 729.637 729.637 ORIENTATION: 40.3434 ANGLE: 0.704126 CIRCULARITY:
+	 PARAM: 159.113COMPACTNESS: 22.7465 Center: [726, 252.5] Radius: 30.3326 RATIO: 38.5058<br>
+</pre>
+
+
+<h2>3. Aquarium Dataset</h2>
+<p>
+Segmentation Method: Adaptive Threshold <br>
+Parameter Used to Reduce Number of Components: <br>
+Erosion 	= 5 <br>
+Dilation 	= 11 <br>
+<br>
+
+This image show the resulting adaptive threshold applied to a Aquarium image from the Aquarium dataset.
+As you can see, there are few bats are not detected as well as noise in the image. 
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Aq_Binary.png" alt="Aq Image" height="520" width="560">
+</p>
+
+<p>
+Eroded Aquarium Image: <br>
+We can use erosion technique to remove any noise in the threshold image and false components.
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Aq_Eroded.png" alt="Aq Image" height="520" width="560">
+</p>
+
+<p>
+Dilated Aquarium Image: <br>
+Once the image has been eroded, we can we dilation technique to build the object back to original
+as well as connect any disconnected components.
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Aq_Dilated.png" alt="Aq Image" height="520" width="560">
+</p>
+
+<p>
+Connected Components & Labeling: <br>
+The following shows the segmented image with connected components and labeling:
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Aq_Label.png" alt="Aq Image" height="520" width="560">
+</p>
+
+<p>
+Object Shape & Feature Analysis: <br>
+The following is a resulting image of object analysis. In this image, you can see that there
+are different components that are detected as one object as well as its centroid, smallest circle that
+surrounds the object, orientation and labeling
+</p>
+<p style="text-indent: 5em;">
+<img src="results\Aq_Orientation.png" alt="Aq Image" height="520" width="560">
+</p>
+
+
+<hr>
+<h2> Discussion & Conclusion</h2>
+<p> 
+In above expriments, the following are some of observation and discussion for each of the datasets. 
+
+<h3 style="text-indent: 10px;"> A. Properties of Image Regions </h3>
+<h4 style="text-indent: 10px;"> Cell Dataset  </h4>
+<p>
+In the cell dataset, we can see that some of the cell are actually connected, however, captured image 
+does not catch the connection between the cells - such as tail cell. It was difficult to remove the 
+this tail cell OR have it connected with dilation without losing its original shape. 
+<br>
+Also, the cells have transparent component in the middle of the cell. This makes it difficult to 
+segment cell since the middle of the cell will be detected as non-component. In the project, 
+dilation was used to fill in the cell, however, at times it was difficult to fill everything without losing the 
+actually characteristics of cell shape. 
+</p>
+<p>
+Below image demonstrate this issue:
+</p>
+<p style="text-indent: 5em;">
+<img src="results\cell_eroded.png" alt="cell eroded Image" height="150" width="150">
+<img src="results\cell_dilated.png" alt="cell eroded Image" height="150" width="150">
+<img src="results\cell_connected.png" alt="cell eroded Image" height="150" width="150">
+<img src="results\cell_property.png" alt="cell eroded Image" height="150" width="150">
+
+</p>
+
+<p>
+There were also some successes:
+</p>
+<img src="results\cellgood_ori.png" alt="cell eroded Image" height="150" width="150">
+<img src="results\cellgood_eroded.png" alt="cell eroded Image" height="150" width="150">
+<img src="results\cellgood_dilated.png" alt="cell eroded Image" height="150" width="150">
+<img src="results\cellgood_connected.png" alt="cell eroded Image" height="150" width="150">
+<img src="results\cellgood_property.png" alt="cell eroded Image" height="150" width="150">
+
+
+<h4 style="text-indent: 10px;"> Bat Dataset  </h4>
+<p>
+In the bat dataset, the properties of components can give you an idea of activity of 
+the bat such as wings spread or folded by looking at the circularity, ratio of area to parameter. 
+</p>
+
+<p>
+For example:
+</p>
+<img src="results\bat_ori.png" alt="cell eroded Image" height="150" width="150">
+<img src="results\bat_eroded.png" alt="cell eroded Image" height="150" width="150">
+<img src="results\bat_dilated.png" alt="cell eroded Image" height="150" width="150">
+<img src="results\bat_connected.png" alt="cell eroded Image" height="150" width="150">
+<img src="results\bat_property.png" alt="cell eroded Image" height="150" width="150">
+
+
+
+<h4 style="text-indent: 10px;"> Aqurium Dataset  </h4>
+
+<li style="text-indent: 3em;"> The segmenation algorithm used for aqurium did not work well at all and needs
+significant improvment perhaps with another segmenation algorithm. </li>
+</p>
+
+
+
+<h3 style="text-indent: 1px;"> B. Lessons Learned </h3>
+<p>
+The following were lesson learned:
+<li style="text-indent: 3em;"> It is very difficult to identify and segment all the objects in the 
+provided image. </li>
+<li style="text-indent: 3em;"> For segmenation algorith on a video (stream of images), 
+it is not easy to find the right combination of erosion and dilation method that can correctly 
+remove small objects in the image. Can this is adaptive as well?</li>
+<li style="text-indent: 3em;"> Segmentaion method using Adaptive Thresholding did not work well for the acqurium dataset. 
+It was very difficult to segment the fish from the surrounding features in the fish tank. </li>
+
+</p>
+
+<h3 style="text-indent: 1px;"> C. Future Work </h3>
+
+<li style="text-indent: 3em;"> Implement other advanced  segmentation algorithm such as region growing and watershed 
+segmentation method. </li>
+<li style="text-indent: 3em;"> Implement algorithm to detect small objects and remove from segmentation. </li>
+
+
+<hr>
+<h2> Credits and Bibliography </h2>
+
+<p>
+Credit: <br>
+<li> Lab 1, 2, 3, 4, and 5 of CS585. </li>
+</p>
+
+<p>
+Reference: <br>
+<li style="text-indent: 1em;">	Find Contours: 	http://docs.opencv.org/modules/imgproc/doc/structural_analysis_and_shape_descriptors.html?highlight=findcontours#findcontours</li>
+<li style="text-indent: 1em;">	matchTemplate:	http://docs.opencv.org/modules/imgproc/doc/object_detection.html?highlight=matchtemplate#matchtemplate</li>
+<li style="text-indent: 1em;"> 	minMaxLoc:	http://docs.opencv.org/modules/core/doc/operations_on_arrays.html?highlight=minmaxloc#minmaxloc</li>
+<li style="text-indent: 1em;"> 	Image Moments: https://en.wikipedia.org/wiki/Image_moment </li>
+</p>
+
+<hr>
+</div>
+</body>
+
+
+
+</html>
